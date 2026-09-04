@@ -1,0 +1,10 @@
+---
+- name: Install Nginx and OpenSSL on Debian-family systems
+  ansible.builtin.apt:
+    name:
+      - "{{ rustfs_nginx_package }}"
+      - openssl
+      - python3-cryptography
+    state: present
+    update_cache: true
+  when: rustfs_nginx_enabled | bool and rustfs_manage_nginx | bool

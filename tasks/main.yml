@@ -1,0 +1,24 @@
+---
+# Discover logical task basenames, then dispatch each one deterministically.
+- name: Discover numbered RustFS task files
+  ansible.builtin.find:
+    paths: "{{ role_path }}/tasks"
+    recurse: true
+    file_type: file
+    patterns: '[0-9][0-9]_*.yml'
+  register: rustfs_task_discovery
+  delegate_to: localhost
+  become: false
+  run_once: true
+
+- name: Build sorted unique RustFS task basenames
+  ansible.builtin.set_fact:
+    rustfs_task_basenames: >-
+      {{ rustfs_task_discovery.files | map(attribute='path') | map('basename') | map('regex_replace', '\.yml$', '') | unique | sort }}
+
+- name: Dispatch RustFS tasks
+  ansible.builtin.include_tasks: include-file.yml
+  loop: "{{ rustfs_task_basenames }}"
+  loop_control:
+    loop_var: rustfs_task_basename
+    label: "{{ rustfs_task_basename }}"

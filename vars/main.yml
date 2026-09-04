@@ -1,0 +1,5 @@
+---
+# Internal role constants. Public, user-overridable settings belong in defaults.
+rustfs_supported_dispatch_families:
+  - Debian
+  - rhelAll

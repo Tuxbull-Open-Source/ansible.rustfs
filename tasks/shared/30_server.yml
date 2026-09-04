@@ -1,0 +1,44 @@
+---
+- name: Select RustFS release asset
+  ansible.builtin.set_fact:
+    rustfs_release_asset: "rustfs-linux-{{ rustfs_arch }}-{{ rustfs_libc }}-v{{ rustfs_version }}.zip"
+    rustfs_release_dir: "/var/tmp/rustfs-{{ rustfs_version }}"
+
+- name: Download RustFS release
+  ansible.builtin.get_url:
+    url: "{{ rustfs_download_base_url }}/{{ rustfs_version }}/{{ rustfs_release_asset }}"
+    dest: "/var/tmp/{{ rustfs_release_asset }}"
+    mode: '0600'
+    checksum: "{{ ('sha256:' + rustfs_checksum) if rustfs_checksum | length > 0 else omit }}"
+  when: rustfs_manage_install | bool
+
+- name: Create RustFS release directory
+  ansible.builtin.file:
+    path: "{{ rustfs_release_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  when: rustfs_manage_install | bool
+
+- name: Unpack RustFS release
+  ansible.builtin.unarchive:
+    src: "/var/tmp/{{ rustfs_release_asset }}"
+    dest: "{{ rustfs_release_dir }}"
+    remote_src: true
+    creates: "{{ rustfs_release_dir }}/rustfs"
+    owner: root
+    group: root
+    mode: '0755'
+  when: rustfs_manage_install | bool
+
+- name: Install RustFS server binary
+  ansible.builtin.copy:
+    src: "{{ rustfs_release_dir }}/rustfs"
+    dest: "{{ rustfs_server_bin }}"
+    remote_src: true
+    owner: root
+    group: root
+    mode: '0755'
+  when: rustfs_manage_install | bool
+  notify: Restart rustfs

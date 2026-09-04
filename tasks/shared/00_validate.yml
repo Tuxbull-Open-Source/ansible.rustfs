@@ -1,0 +1,11 @@
+---
+- name: Validate RustFS inputs
+  ansible.builtin.assert:
+    that:
+      - rustfs_root_user | length >= 3
+      - rustfs_root_password | length >= 12
+      - rustfs_version is match('^[0-9].*')
+      - rustfs_buckets | selectattr('name', 'defined') | list | length == rustfs_buckets | length
+      - not rustfs_nginx_enabled or (rustfs_nginx_ssl_certificate | length > 0 and rustfs_nginx_ssl_certificate_key | length > 0)
+    fail_msg: Provide strong credentials, a release version, valid buckets, and certificate paths when Nginx TLS is enabled.
+  no_log: true
