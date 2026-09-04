@@ -13,7 +13,7 @@
     RC_CONFIG_DIR: "{{ rustfs_config_dir }}/rc"
   changed_when: false
   no_log: true
-  when: rustfs_manage_provisioning | bool
+  when: rustfs_install_client | bool and rustfs_manage_provisioning | bool and (rustfs_buckets | length > 0 or rustfs_users | length > 0)
 
 - name: Check requested buckets
   ansible.builtin.command:
@@ -25,7 +25,7 @@
   changed_when: false
   failed_when: false
   no_log: true
-  when: rustfs_manage_provisioning | bool
+  when: rustfs_install_client | bool and rustfs_manage_provisioning | bool and (rustfs_buckets | length > 0 or rustfs_users | length > 0)
 
 - name: Create requested buckets
   ansible.builtin.command:
@@ -33,7 +33,7 @@
   environment:
     RC_CONFIG_DIR: "{{ rustfs_config_dir }}/rc"
   loop: "{{ rustfs_bucket_checks.results | default([]) }}"
-  when: rustfs_manage_provisioning | bool and item.rc != 0
+  when: rustfs_install_client | bool and rustfs_manage_provisioning | bool and (rustfs_buckets | length > 0 or rustfs_users | length > 0) and item.rc != 0
   no_log: true
 
 - name: Check requested users
@@ -46,7 +46,7 @@
   changed_when: false
   failed_when: false
   no_log: true
-  when: rustfs_manage_provisioning | bool
+  when: rustfs_install_client | bool and rustfs_manage_provisioning | bool and (rustfs_buckets | length > 0 or rustfs_users | length > 0)
 
 - name: Create requested users
   ansible.builtin.command:
@@ -54,5 +54,5 @@
   environment:
     RC_CONFIG_DIR: "{{ rustfs_config_dir }}/rc"
   loop: "{{ rustfs_user_checks.results | default([]) }}"
-  when: rustfs_manage_provisioning | bool and item.rc != 0
+  when: rustfs_install_client | bool and rustfs_manage_provisioning | bool and (rustfs_buckets | length > 0 or rustfs_users | length > 0) and item.rc != 0
   no_log: true
