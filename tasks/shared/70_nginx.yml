@@ -95,9 +95,16 @@
     owner: root
     group: root
     mode: '0644'
-    validate: nginx -t -c %s
   when: rustfs_nginx_enabled | bool and rustfs_manage_nginx | bool
   notify: Reload nginx
+
+- name: Validate complete Nginx configuration
+  ansible.builtin.command:
+    argv:
+      - nginx
+      - -t
+  changed_when: false
+  when: rustfs_nginx_enabled | bool and rustfs_manage_nginx | bool
 
 - name: Enable and start Nginx
   ansible.builtin.systemd:
