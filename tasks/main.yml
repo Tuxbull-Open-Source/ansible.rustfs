@@ -1,57 +1,21 @@
 ---
-- name: Validate RustFS inputs
-  ansible.builtin.assert:
-    that:
-      - rustfs_root_user | length >= 3
-      - rustfs_root_password | length >= 12
-      - rustfs_version is match('^[0-9].*')
-      - rustfs_buckets | selectattr('name','defined') | list | length == rustfs_buckets | length
-      - not rustfs_nginx_enabled or (rustfs_nginx_ssl_certificate | length > 0 and rustfs_nginx_ssl_certificate_key | length > 0)
-    fail_msg: Provide strong credentials, a release version, valid buckets, and certificate paths when Nginx TLS is enabled.
-  no_log: true
+# Discover logical task basenames, then dispatch each one deterministically.
+- name: Discover numbered RustFS task files
+  ansible.builtin.find:
+    paths: "{{ role_path }}/tasks"
+    recurse: true
+    file_type: file
+    patterns: '[0-9][0-9]_*.yml'
+  register: rustfs_task_discovery
 
-- name: Install required packages
-  ansible.builtin.package:
-    name:
-      - unzip
-      - tar
-    state: present
+- name: Build sorted unique RustFS task basenames
+  ansible.builtin.set_fact:
+    rustfs_task_basenames: >-
+      {{ rustfs_task_discovery.files | map(attribute='path') | map('basename') | map('regex_replace', '\.yml$', '') | unique | sort }}
 
-- name: Create RustFS service account
-  ansible.builtin.user:
-    name: "{{ rustfs_user }}"
-    group: "{{ rustfs_group }}"
-    uid: "{{ rustfs_uid }}"
-    system: true
-    shell: /sbin/nologin
-    create_home: false
-
-- name: Create RustFS directories
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: directory
-    owner: "{{ rustfs_user }}"
-    group: "{{ rustfs_group }}"
-    mode: '0750'
-  loop:
-    - "{{ rustfs_config_dir }}"
-    - "{{ rustfs_data_dir }}"
-    - "{{ rustfs_log_dir }}"
-
-- name: Install RustFS server release
-  ansible.builtin.include_tasks: install_server.yml
-
-- name: Install RustFS rc client
-  ansible.builtin.include_tasks: install_client.yml
-  when: rustfs_install_client | bool
-
-- name: Configure and start RustFS
-  ansible.builtin.include_tasks: configure.yml
-
-- name: Configure requested buckets and users
-  ansible.builtin.include_tasks: provision.yml
-  when: rustfs_install_client | bool and (rustfs_buckets | length > 0 or rustfs_users | length > 0)
-
-- name: Configure optional Nginx TLS reverse proxy
-  ansible.builtin.include_tasks: nginx.yml
-  when: rustfs_nginx_enabled | bool
+- name: Dispatch RustFS tasks
+  ansible.builtin.include_tasks: include-file.yml
+  loop: "{{ rustfs_task_basenames }}"
+  loop_control:
+    loop_var: rustfs_task_basename
+    label: "{{ rustfs_task_basename }}"

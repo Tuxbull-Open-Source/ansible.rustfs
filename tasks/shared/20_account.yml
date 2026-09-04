@@ -1,0 +1,30 @@
+---
+- name: Create RustFS group
+  ansible.builtin.group:
+    name: "{{ rustfs_group }}"
+    gid: "{{ rustfs_gid }}"
+    system: true
+  when: rustfs_manage_configuration | bool
+
+- name: Create RustFS service account
+  ansible.builtin.user:
+    name: "{{ rustfs_user }}"
+    group: "{{ rustfs_group }}"
+    uid: "{{ rustfs_uid }}"
+    system: true
+    shell: /sbin/nologin
+    create_home: false
+  when: rustfs_manage_configuration | bool
+
+- name: Create RustFS directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ rustfs_user }}"
+    group: "{{ rustfs_group }}"
+    mode: '0750'
+  loop:
+    - "{{ rustfs_config_dir }}"
+    - "{{ rustfs_data_dir }}"
+    - "{{ rustfs_log_dir }}"
+  when: rustfs_manage_configuration | bool

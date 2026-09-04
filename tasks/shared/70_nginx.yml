@@ -6,17 +6,9 @@
       - rustfs_nginx_ssl_mode != 'controller' or (rustfs_nginx_ssl_certificate_source | length > 0 and rustfs_nginx_ssl_certificate_key_source | length > 0)
       - rustfs_nginx_ssl_certificate | length > 0
       - rustfs_nginx_ssl_certificate_key | length > 0
-    fail_msg: >-
-      Set rustfs_nginx_ssl_mode to self_signed, existing_target, or controller.
-      Controller mode also requires both *_source variables.
+    fail_msg: Set a supported Nginx TLS mode and complete certificate paths/sources.
   no_log: true
-
-- name: Install Nginx and certificate tooling
-  ansible.builtin.package:
-    name:
-      - "{{ rustfs_nginx_package }}"
-      - openssl
-    state: present
+  when: rustfs_nginx_enabled | bool and rustfs_manage_nginx | bool
 
 - name: Create certificate directories
   ansible.builtin.file:
@@ -28,6 +20,7 @@
   loop:
     - "{{ rustfs_nginx_ssl_certificate | dirname }}"
     - "{{ rustfs_nginx_ssl_certificate_key | dirname }}"
+  when: rustfs_nginx_enabled | bool and rustfs_manage_nginx | bool
 
 - name: Generate self-signed private key
   community.crypto.openssl_privatekey:
@@ -37,7 +30,7 @@
     owner: root
     group: root
     mode: '0600'
-  when: rustfs_nginx_ssl_mode == 'self_signed'
+  when: rustfs_nginx_enabled | bool and rustfs_manage_nginx | bool and rustfs_nginx_ssl_mode == 'self_signed'
   notify: Reload nginx
 
 - name: Generate self-signed certificate
@@ -46,15 +39,14 @@
     privatekey_path: "{{ rustfs_nginx_ssl_certificate_key }}"
     provider: selfsigned
     selfsigned_not_after: "+{{ rustfs_nginx_self_signed_days }}d"
-    subject:
-      commonName: "{{ rustfs_nginx_s3_server_name }}"
+    subject: {commonName: "{{ rustfs_nginx_s3_server_name }}"}
     subject_alt_name:
       - "DNS:{{ rustfs_nginx_s3_server_name }}"
       - "DNS:{{ rustfs_nginx_console_server_name }}"
     owner: root
     group: root
     mode: '0644'
-  when: rustfs_nginx_ssl_mode == 'self_signed'
+  when: rustfs_nginx_enabled | bool and rustfs_manage_nginx | bool and rustfs_nginx_ssl_mode == 'self_signed'
   notify: Reload nginx
 
 - name: Install user-supplied certificate and key from controller
@@ -67,7 +59,7 @@
   loop:
     - {src: "{{ rustfs_nginx_ssl_certificate_source }}", dest: "{{ rustfs_nginx_ssl_certificate }}", mode: '0644'}
     - {src: "{{ rustfs_nginx_ssl_certificate_key_source }}", dest: "{{ rustfs_nginx_ssl_certificate_key }}", mode: '0600'}
-  when: rustfs_nginx_ssl_mode == 'controller'
+  when: rustfs_nginx_enabled | bool and rustfs_manage_nginx | bool and rustfs_nginx_ssl_mode == 'controller'
   no_log: true
   notify: Reload nginx
 
@@ -78,14 +70,14 @@
     - "{{ rustfs_nginx_ssl_certificate }}"
     - "{{ rustfs_nginx_ssl_certificate_key }}"
   register: rustfs_nginx_certificate_files
-  when: rustfs_nginx_ssl_mode == 'existing_target'
+  when: rustfs_nginx_enabled | bool and rustfs_manage_nginx | bool and rustfs_nginx_ssl_mode == 'existing_target'
 
 - name: Require user-supplied target certificate and key
   ansible.builtin.assert:
     that: item.stat.exists and item.stat.isreg
     fail_msg: "Certificate or key is missing on the target: {{ item.item }}"
   loop: "{{ rustfs_nginx_certificate_files.results | default([]) }}"
-  when: rustfs_nginx_ssl_mode == 'existing_target'
+  when: rustfs_nginx_enabled | bool and rustfs_manage_nginx | bool and rustfs_nginx_ssl_mode == 'existing_target'
   no_log: true
 
 - name: Render Nginx SNI reverse proxy
@@ -96,6 +88,7 @@
     group: root
     mode: '0644'
     validate: nginx -t -c %s
+  when: rustfs_nginx_enabled | bool and rustfs_manage_nginx | bool
   notify: Reload nginx
 
 - name: Enable and start Nginx
@@ -103,3 +96,4 @@
     name: nginx
     enabled: true
     state: started
+  when: rustfs_nginx_enabled | bool and rustfs_manage_nginx | bool

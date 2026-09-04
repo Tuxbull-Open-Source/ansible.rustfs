@@ -1,0 +1,8 @@
+---
+- name: Install Nginx and OpenSSL on RHEL-family systems
+  ansible.builtin.dnf:
+    name:
+      - "{{ rustfs_nginx_package }}"
+      - openssl
+    state: present
+  when: rustfs_nginx_enabled | bool and rustfs_manage_nginx | bool

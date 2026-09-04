@@ -8,6 +8,7 @@
     mode: '0600'
   notify: Restart rustfs
   no_log: true
+  when: rustfs_manage_configuration | bool
 
 - name: Render systemd unit
   ansible.builtin.template:
@@ -17,6 +18,7 @@
     group: root
     mode: '0644'
   notify: Restart rustfs
+  when: rustfs_manage_configuration | bool
 
 - name: Enable and start RustFS
   ansible.builtin.systemd:
@@ -24,6 +26,7 @@
     enabled: true
     state: started
     daemon_reload: true
+  when: rustfs_manage_service | bool
 
 - name: Wait for RustFS health endpoint
   ansible.builtin.uri:
@@ -34,3 +37,4 @@
   retries: "{{ rustfs_client_retries }}"
   delay: "{{ rustfs_client_delay }}"
   until: rustfs_health.status == 200
+  when: rustfs_manage_service | bool

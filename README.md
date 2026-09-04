@@ -60,6 +60,12 @@ the defaults unless stated otherwise.
 | `rustfs_libc` | string | `musl` | Release libc variant; `musl` or `gnu` where published. |
 | `rustfs_download_base_url` | string/URL | RustFS releases URL | Base URL for server archives. |
 | `rustfs_checksum` | string | empty | Optional 64-hex SHA-256 checksum for the server archive; recommended. |
+| `rustfs_manage_packages` | boolean | `true` | Install OS package prerequisites. |
+| `rustfs_manage_install` | boolean | `true` | Download and install RustFS binaries. |
+| `rustfs_manage_configuration` | boolean | `true` | Manage the account, directories, environment, and unit. |
+| `rustfs_manage_service` | boolean | `true` | Enable, start, and health-check RustFS. |
+| `rustfs_manage_provisioning` | boolean | `true` | Reconcile declared buckets and users when the client is installed. |
+| `rustfs_manage_nginx` | boolean | `true` | Manage Nginx packages, certificates, configuration, and service. |
 | `rustfs_install_client` | boolean | `true` | Install the official `rc` client. Required for bucket/user provisioning. |
 | `rustfs_cli_version` | string | `v0.1.32` | `rc` client release tag. |
 | `rustfs_cli_download_base_url` | string/URL | RustFS CLI releases URL | Base URL for client archives. |
@@ -239,11 +245,45 @@ Certificate operations:
 - Reload Nginx with `systemctl reload nginx`.
 - Verify both SNI endpoints and certificate SANs.
 
+## Task dispatch and supported platforms
+
+The role uses a deterministic numbered-task dispatcher. `tasks/main.yml` finds
+all two-digit task basenames below `tasks/`, sorts and deduplicates them, and
+`tasks/include-file.yml` selects the first implementation in this order:
+
+1. distribution + full version
+2. distribution + major version
+3. distribution
+4. `rhelAll` + full/major version, then `rhelAll`
+5. `ansible_os_family`
+6. `shared`
+
+AlmaLinux, Rocky, and Red Hat use the `rhelAll` family. Debian-family package
+and Nginx installation tasks are under `tasks/Debian/`; RHEL-family equivalents
+are under `tasks/rhelAll/`. Shared tasks contain the platform-neutral release,
+service, provisioning, and optional plain-HTTP/Nginx-TLS behavior. A more
+specific file with the same basename shadows (replaces) the shared fallback;
+it is not additive. Keep numbered basenames unique unless that shadowing is
+intentional.
+
+| Family | Package implementation | Coverage |
+|---|---|---|
+| Debian-family | `apt` | Debian and derivatives exposing `ansible_os_family: Debian` |
+| RHEL-family | `dnf` | Rocky, AlmaLinux, Red Hat (`rhelAll`) |
+
+The local harness copies the role into `harness/roles/rustfs` so its basename
+matches the installed-role contract, then runs both Debian and Rocky fact sets.
+It disables package, download, service, provisioning, and Nginx changes, so
+these tests prove dispatch and syntax only—not installation or live behavior.
+Install `community.crypto` before enabling Nginx TLS; the dependency is pinned
+in [`collections/requirements.yml`](collections/requirements.yml).
+
 ## Testing status
 
 Static verification currently passes:
 
 ```bash
+python3 tests/scripts/prepare_harness.py
 python3 - <<'PY'
 from pathlib import Path
 import yaml
@@ -252,8 +292,11 @@ for path in files:
     yaml.safe_load(path.read_text())
 print(f'parsed {len(files)} YAML files')
 PY
-ansible-playbook -i tests/inventory.ini tests/test.yml --syntax-check
+ANSIBLE_ROLES_PATH=harness/roles ansible-playbook -i tests/inventory.ini tests/test.yml --syntax-check
+ANSIBLE_ROLES_PATH=harness/roles ansible-playbook -i tests/inventory.ini tests/test.yml --check
 git diff --check
+# Focused scan: shared tasks must remain OS-neutral.
+! grep -REn 'ansible_(os_family|distribution)|\b(Debian|RedHat|Rocky|AlmaLinux|apt|dnf|yum)\b' tasks/shared/
 ```
 
 A disposable Rocky 10 Hetzner test was attempted, but SSH authentication

@@ -10,7 +10,7 @@
     dest: "/var/tmp/{{ rustfs_release_asset }}"
     mode: '0600'
     checksum: "{{ ('sha256:' + rustfs_checksum) if rustfs_checksum | length > 0 else omit }}"
-  register: rustfs_server_download
+  when: rustfs_manage_install | bool
 
 - name: Unpack RustFS release
   ansible.builtin.unarchive:
@@ -21,6 +21,7 @@
     owner: root
     group: root
     mode: '0755'
+  when: rustfs_manage_install | bool
 
 - name: Install RustFS server binary
   ansible.builtin.copy:
@@ -30,4 +31,5 @@
     owner: root
     group: root
     mode: '0755'
+  when: rustfs_manage_install | bool
   notify: Restart rustfs

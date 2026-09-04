@@ -1,13 +1,52 @@
 ---
-- name: Static role test
+- name: Debian dispatch smoke test
   hosts: localhost
   connection: local
   gather_facts: false
   vars:
+    ansible_distribution: Debian
+    ansible_distribution_version: '12.5'
+    ansible_distribution_major_version: '12'
+    ansible_os_family: Debian
     rustfs_root_user: testadmin
     rustfs_root_password: test-password-not-for-production
-    rustfs_checksum: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
-    rustfs_buckets: []
-    rustfs_users: []
+    rustfs_nginx_enabled: false
+    rustfs_install_client: false
+    rustfs_manage_packages: false
+    rustfs_manage_install: false
+    rustfs_manage_configuration: false
+    rustfs_manage_service: false
+    rustfs_manage_provisioning: false
+    rustfs_manage_nginx: false
   roles:
     - role: rustfs
+  post_tasks:
+    - name: Assert Debian implementation was selected
+      ansible.builtin.assert:
+        that: rustfs_dispatch_selected == 'Debian'
+
+- name: RHEL dispatch smoke test
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_distribution: Rocky
+    ansible_distribution_version: '9.4'
+    ansible_distribution_major_version: '9'
+    ansible_os_family: RedHat
+    rustfs_root_user: testadmin
+    rustfs_root_password: test-password-not-for-production
+    rustfs_nginx_enabled: false
+    rustfs_install_client: false
+    rustfs_manage_packages: false
+    rustfs_manage_install: false
+    rustfs_manage_configuration: false
+    rustfs_manage_service: false
+    rustfs_manage_provisioning: false
+    rustfs_manage_nginx: false
+  roles:
+    - role: rustfs
+  post_tasks:
+    - name: Assert RHEL implementation was selected
+      ansible.builtin.assert:
+        that: rustfs_dispatch_selected == 'rhelAll'

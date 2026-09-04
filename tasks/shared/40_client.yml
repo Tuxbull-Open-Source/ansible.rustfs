@@ -10,6 +10,7 @@
     dest: "/var/tmp/{{ rustfs_cli_asset }}"
     mode: '0600'
     checksum: "{{ ('sha256:' + rustfs_cli_checksum) if rustfs_cli_checksum | length > 0 else omit }}"
+  when: rustfs_install_client | bool and rustfs_manage_install | bool
 
 - name: Unpack rc release
   ansible.builtin.unarchive:
@@ -20,6 +21,7 @@
     owner: root
     group: root
     mode: '0755'
+  when: rustfs_install_client | bool and rustfs_manage_install | bool
 
 - name: Install rc binary
   ansible.builtin.copy:
@@ -29,3 +31,4 @@
     owner: root
     group: root
     mode: '0755'
+  when: rustfs_install_client | bool and rustfs_manage_install | bool

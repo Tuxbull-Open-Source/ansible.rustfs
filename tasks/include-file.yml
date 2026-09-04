@@ -1,0 +1,19 @@
+---
+# First match wins: specific distribution/version, rhelAll, family, shared.
+- name: Select RustFS implementation for {{ rustfs_task_basename }}
+  ansible.builtin.include_tasks: "{{ rustfs_selected_task }}"
+  vars:
+    rustfs_selected_task: >-
+      {{ lookup('ansible.builtin.first_found', {
+        'files': [
+          ansible_distribution ~ '-' ~ ansible_distribution_version ~ '/' ~ rustfs_task_basename ~ '.yml',
+          ansible_distribution ~ '-' ~ ansible_distribution_major_version ~ '/' ~ rustfs_task_basename ~ '.yml',
+          ansible_distribution ~ '/' ~ rustfs_task_basename ~ '.yml',
+          'rhelAll-' ~ ansible_distribution_version ~ '/' ~ rustfs_task_basename ~ '.yml',
+          'rhelAll-' ~ ansible_distribution_major_version ~ '/' ~ rustfs_task_basename ~ '.yml',
+          'rhelAll/' ~ rustfs_task_basename ~ '.yml',
+          ansible_os_family ~ '/' ~ rustfs_task_basename ~ '.yml',
+          'shared/' ~ rustfs_task_basename ~ '.yml'
+        ],
+        'paths': [role_path ~ '/tasks']
+      }) }}

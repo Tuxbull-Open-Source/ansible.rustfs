@@ -1,0 +1,12 @@
+---
+- name: Install RustFS packages on RHEL-family systems
+  ansible.builtin.dnf:
+    name:
+      - unzip
+      - tar
+    state: present
+  when: rustfs_manage_packages | bool
+
+- name: Mark RHEL-family dispatch
+  ansible.builtin.set_fact:
+    rustfs_dispatch_selected: rhelAll

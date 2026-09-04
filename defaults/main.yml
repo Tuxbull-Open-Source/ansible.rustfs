@@ -9,6 +9,14 @@ rustfs_libc: musl
 rustfs_download_base_url: "https://github.com/rustfs/rustfs/releases/download"
 # Optional SHA-256 checksum for the server archive. Strongly recommended for production.
 rustfs_checksum: ""
+# Independent controls: keep package installation, installation, configuration,
+# service management, provisioning, and Nginx management separately switchable.
+rustfs_manage_packages: true
+rustfs_manage_install: true
+rustfs_manage_configuration: true
+rustfs_manage_service: true
+rustfs_manage_provisioning: true
+rustfs_manage_nginx: true
 
 # Install the official RustFS rc administration/S3 client.
 rustfs_install_client: true
