@@ -7,6 +7,9 @@
     file_type: file
     patterns: '[0-9][0-9]_*.yml'
   register: rustfs_task_discovery
+  delegate_to: localhost
+  become: false
+  run_once: true
 
 - name: Build sorted unique RustFS task basenames
   ansible.builtin.set_fact:

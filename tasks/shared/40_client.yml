@@ -12,6 +12,15 @@
     checksum: "{{ ('sha256:' + rustfs_cli_checksum) if rustfs_cli_checksum | length > 0 else omit }}"
   when: rustfs_install_client | bool and rustfs_manage_install | bool
 
+- name: Create rc release directory
+  ansible.builtin.file:
+    path: "{{ rustfs_cli_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  when: rustfs_install_client | bool and rustfs_manage_install | bool
+
 - name: Unpack rc release
   ansible.builtin.unarchive:
     src: "/var/tmp/{{ rustfs_cli_asset }}"
