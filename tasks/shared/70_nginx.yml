@@ -33,16 +33,24 @@
   when: rustfs_nginx_enabled | bool and rustfs_manage_nginx | bool and rustfs_nginx_ssl_mode == 'self_signed'
   notify: Reload nginx
 
-- name: Generate self-signed certificate
-  community.crypto.x509_certificate:
-    path: "{{ rustfs_nginx_ssl_certificate }}"
+- name: Generate self-signed certificate signing request
+  community.crypto.openssl_csr:
+    path: "{{ rustfs_nginx_ssl_certificate_key }}.csr"
     privatekey_path: "{{ rustfs_nginx_ssl_certificate_key }}"
-    provider: selfsigned
-    selfsigned_not_after: "+{{ rustfs_nginx_self_signed_days }}d"
-    subject: {commonName: "{{ rustfs_nginx_s3_server_name }}"}
+    common_name: "{{ rustfs_nginx_s3_server_name }}"
     subject_alt_name:
       - "DNS:{{ rustfs_nginx_s3_server_name }}"
       - "DNS:{{ rustfs_nginx_console_server_name }}"
+  when: rustfs_nginx_enabled | bool and rustfs_manage_nginx | bool and rustfs_nginx_ssl_mode == 'self_signed'
+
+- name: Generate self-signed certificate from CSR
+  community.crypto.x509_certificate:
+    path: "{{ rustfs_nginx_ssl_certificate }}"
+    csr_path: "{{ rustfs_nginx_ssl_certificate_key }}.csr"
+    privatekey_path: "{{ rustfs_nginx_ssl_certificate_key }}"
+    provider: selfsigned
+    selfsigned_not_after: "+{{ rustfs_nginx_self_signed_days }}d"
+    selfsigned_digest: sha256
     owner: root
     group: root
     mode: '0644'
