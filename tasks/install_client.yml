@@ -1,0 +1,31 @@
+---
+- name: Select rc release asset
+  ansible.builtin.set_fact:
+    rustfs_cli_asset: "rustfs-cli-linux-amd64-v{{ rustfs_cli_version | regex_replace('^v','') }}.tar.gz"
+    rustfs_cli_dir: "/var/tmp/rustfs-cli-{{ rustfs_cli_version }}"
+
+- name: Download rc release
+  ansible.builtin.get_url:
+    url: "{{ rustfs_cli_download_base_url }}/{{ rustfs_cli_version }}/{{ rustfs_cli_asset }}"
+    dest: "/var/tmp/{{ rustfs_cli_asset }}"
+    mode: '0600'
+    checksum: "{{ ('sha256:' + rustfs_cli_checksum) if rustfs_cli_checksum | length > 0 else omit }}"
+
+- name: Unpack rc release
+  ansible.builtin.unarchive:
+    src: "/var/tmp/{{ rustfs_cli_asset }}"
+    dest: "{{ rustfs_cli_dir }}"
+    remote_src: true
+    creates: "{{ rustfs_cli_dir }}/rc"
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Install rc binary
+  ansible.builtin.copy:
+    src: "{{ rustfs_cli_dir }}/rc"
+    dest: "{{ rustfs_client_bin }}"
+    remote_src: true
+    owner: root
+    group: root
+    mode: '0755'

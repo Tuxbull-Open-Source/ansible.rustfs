@@ -1,0 +1,55 @@
+---
+- name: Configure rc alias
+  ansible.builtin.command:
+    argv:
+      - "{{ rustfs_client_bin }}"
+      - alias
+      - set
+      - "{{ rustfs_cli_alias }}"
+      - "{{ rustfs_api_url }}"
+      - "{{ rustfs_root_user }}"
+      - "{{ rustfs_root_password }}"
+  environment:
+    RC_CONFIG_DIR: "{{ rustfs_config_dir }}/rc"
+  changed_when: false
+  no_log: true
+
+- name: Check requested buckets
+  ansible.builtin.command:
+    argv: ["{{ rustfs_client_bin }}", "bucket", "info", "{{ rustfs_cli_alias }}/{{ item.name }}"]
+  environment:
+    RC_CONFIG_DIR: "{{ rustfs_config_dir }}/rc"
+  loop: "{{ rustfs_buckets }}"
+  register: rustfs_bucket_checks
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: Create requested buckets
+  ansible.builtin.command:
+    argv: ["{{ rustfs_client_bin }}", "bucket", "create", "{{ rustfs_cli_alias }}/{{ item.item.name }}"]
+  environment:
+    RC_CONFIG_DIR: "{{ rustfs_config_dir }}/rc"
+  loop: "{{ rustfs_bucket_checks.results }}"
+  when: item.rc != 0
+  no_log: true
+
+- name: Check requested users
+  ansible.builtin.command:
+    argv: ["{{ rustfs_client_bin }}", "admin", "user", "info", "{{ rustfs_cli_alias }}", "{{ item.access_key }}"]
+  environment:
+    RC_CONFIG_DIR: "{{ rustfs_config_dir }}/rc"
+  loop: "{{ rustfs_users }}"
+  register: rustfs_user_checks
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: Create requested users
+  ansible.builtin.command:
+    argv: ["{{ rustfs_client_bin }}", "admin", "user", "add", "{{ rustfs_cli_alias }}", "{{ item.item.access_key }}", "{{ item.item.secret_key }}"]
+  environment:
+    RC_CONFIG_DIR: "{{ rustfs_config_dir }}/rc"
+  loop: "{{ rustfs_user_checks.results }}"
+  when: item.rc != 0
+  no_log: true

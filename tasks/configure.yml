@@ -1,0 +1,36 @@
+---
+- name: Render RustFS environment
+  ansible.builtin.template:
+    src: rustfs.env.j2
+    dest: "{{ rustfs_env_file }}"
+    owner: root
+    group: "{{ rustfs_group }}"
+    mode: '0600'
+  notify: Restart rustfs
+  no_log: true
+
+- name: Render systemd unit
+  ansible.builtin.template:
+    src: rustfs.service.j2
+    dest: /etc/systemd/system/rustfs.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart rustfs
+
+- name: Enable and start RustFS
+  ansible.builtin.systemd:
+    name: rustfs
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Wait for RustFS health endpoint
+  ansible.builtin.uri:
+    url: "http://{{ rustfs_api_address }}/{{ rustfs_health_path | regex_replace('^/','') }}"
+    status_code: 200
+    return_content: false
+  register: rustfs_health
+  retries: "{{ rustfs_client_retries }}"
+  delay: "{{ rustfs_client_delay }}"
+  until: rustfs_health.status == 200

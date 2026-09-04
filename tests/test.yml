@@ -1,0 +1,13 @@
+---
+- name: Static role test
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    rustfs_root_user: testadmin
+    rustfs_root_password: test-password-not-for-production
+    rustfs_checksum: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    rustfs_buckets: []
+    rustfs_users: []
+  roles:
+    - role: rustfs
