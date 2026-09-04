@@ -4,10 +4,22 @@
     name:
       - unzip
       - tar
+      - "{{ rustfs_nginx_package }}"
+      - openssl
+      - python3-cryptography
     state: present
     update_cache: true
-  when: rustfs_manage_packages | bool
+  when: rustfs_manage_packages | bool and rustfs_nginx_enabled | bool and rustfs_manage_nginx | bool
 
 - name: Mark Debian-family dispatch
   ansible.builtin.set_fact:
     rustfs_dispatch_selected: Debian
+
+- name: Install only RustFS prerequisites when Nginx is disabled
+  ansible.builtin.apt:
+    name:
+      - unzip
+      - tar
+    state: present
+    update_cache: true
+  when: rustfs_manage_packages | bool and not (rustfs_nginx_enabled | bool and rustfs_manage_nginx | bool)
