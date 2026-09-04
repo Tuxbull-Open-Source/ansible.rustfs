@@ -1,54 +1,97 @@
 ---
+# RustFS server release version, without the leading "v".
 rustfs_version: "1.0.0-rc.5"
+# Release architecture. Supported archive value currently includes x86_64.
 rustfs_arch: x86_64
+# Release libc variant: musl has the broadest Linux compatibility; gnu is also available.
 rustfs_libc: musl
+# Base URL containing versioned RustFS release assets.
 rustfs_download_base_url: "https://github.com/rustfs/rustfs/releases/download"
+# Optional SHA-256 checksum for the server archive. Strongly recommended for production.
 rustfs_checksum: ""
+
+# Install the official RustFS rc administration/S3 client.
 rustfs_install_client: true
+# rc client release tag, with or without the leading "v".
 rustfs_cli_version: "v0.1.32"
+# Base URL containing versioned rc client release assets.
 rustfs_cli_download_base_url: "https://github.com/rustfs/cli/releases/download"
+# Optional SHA-256 checksum for the rc archive. Strongly recommended for production.
 rustfs_cli_checksum: ""
+
+# Dedicated unprivileged service account and primary group.
 rustfs_user: rustfs
 rustfs_group: rustfs
+# Fixed numeric IDs provide stable ownership across hosts; change if already allocated.
 rustfs_uid: 10001
 rustfs_gid: 10001
+# Configuration, persistent data, and log locations.
 rustfs_config_dir: /etc/rustfs
 rustfs_data_dir: /var/lib/rustfs
 rustfs_log_dir: /var/log/rustfs
+# Installed binary paths.
 rustfs_server_bin: /usr/local/bin/rustfs
 rustfs_client_bin: /usr/local/bin/rc
+# Root-owned mode-0600 environment file containing RustFS credentials and settings.
 rustfs_env_file: "{{ rustfs_config_dir }}/rustfs.env"
+
+# RustFS listeners. Keep these on loopback when Nginx is the public endpoint.
 rustfs_api_address: "127.0.0.1:9000"
 rustfs_console_address: "127.0.0.1:9001"
+# S3 signing region presented to clients.
 rustfs_region: us-east-1
+# Enable the RustFS browser console listener.
 rustfs_console_enabled: true
+# RustFS observability log level, for example debug, info, warn, or error.
 rustfs_logger_level: info
+# Root/admin access key. Supply from Ansible Vault or another secret store.
 rustfs_root_user: ""
+# Root/admin secret key; minimum length enforced by the role. Never commit it.
 rustfs_root_password: ""
+# Additional environment variables passed to RustFS as a mapping.
 rustfs_extra_env: {}
+# Additional command-line arguments appended to the systemd ExecStart command.
 rustfs_server_args: []
+
+# Buckets to ensure exist. Format: [{name: backups}, {name: artifacts}].
+# Removing a bucket from this list does not delete it.
 rustfs_buckets: []
+# Additional users to ensure exist. Each item needs access_key and secret_key.
+# Removing a user from this list does not delete it or rotate its secret.
 rustfs_users: []
+
+# Alias name used in the rc client configuration directory.
 rustfs_cli_alias: local
+# Reserved for client TLS validation settings; the current local endpoint is HTTP.
 rustfs_cli_validate_certs: true
+# Endpoint used by rc for administration and bucket/user provisioning.
 rustfs_api_url: "http://127.0.0.1:9000"
+# Health-check retry count and delay in seconds.
 rustfs_client_retries: 30
 rustfs_client_delay: 2
+# HTTP health path on the RustFS API listener.
 rustfs_health_path: /health
+
 # Nginx is enabled by default and terminates TLS; RustFS remains local plain HTTP.
 rustfs_nginx_enabled: true
+# Distribution package name for the reverse proxy.
 rustfs_nginx_package: nginx
+# SNI hostname routed to the RustFS S3/API listener.
 rustfs_nginx_s3_server_name: s3.example.invalid
+# SNI hostname routed to the RustFS Console listener.
 rustfs_nginx_console_server_name: console.example.invalid
+# Shared HTTPS listen port for both SNI virtual hosts.
 rustfs_nginx_listen_port: 443
-# Certificate mode: self_signed, existing_target, or controller.
+# Certificate source mode: self_signed, existing_target, or controller.
 rustfs_nginx_ssl_mode: self_signed
+# Target paths used by Nginx for the certificate and private key.
 rustfs_nginx_ssl_certificate: /etc/pki/tls/certs/rustfs-selfsigned.crt
 rustfs_nginx_ssl_certificate_key: /etc/pki/tls/private/rustfs-selfsigned.key
-# Used only when rustfs_nginx_ssl_mode=controller.
+# Controller-side source paths, used only when ssl_mode=controller.
 rustfs_nginx_ssl_certificate_source: ""
 rustfs_nginx_ssl_certificate_key_source: ""
-# Used only when rustfs_nginx_ssl_mode=self_signed.
+# Self-signed certificate lifetime and RSA key size, used only in self_signed mode.
 rustfs_nginx_self_signed_days: 365
 rustfs_nginx_self_signed_key_size: 4096
+# Nginx virtual-host configuration path.
 rustfs_nginx_config_path: /etc/nginx/conf.d/rustfs.conf
