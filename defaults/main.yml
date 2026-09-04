@@ -35,13 +35,20 @@ rustfs_api_url: "http://127.0.0.1:9000"
 rustfs_client_retries: 30
 rustfs_client_delay: 2
 rustfs_health_path: /health
-rustfs_nginx_enabled: false
+# Nginx is enabled by default and terminates TLS; RustFS remains local plain HTTP.
+rustfs_nginx_enabled: true
 rustfs_nginx_package: nginx
 rustfs_nginx_s3_server_name: s3.example.invalid
 rustfs_nginx_console_server_name: console.example.invalid
 rustfs_nginx_listen_port: 443
-rustfs_nginx_ssl_certificate: ""
-rustfs_nginx_ssl_certificate_key: ""
+# Certificate mode: self_signed, existing_target, or controller.
+rustfs_nginx_ssl_mode: self_signed
+rustfs_nginx_ssl_certificate: /etc/pki/tls/certs/rustfs-selfsigned.crt
+rustfs_nginx_ssl_certificate_key: /etc/pki/tls/private/rustfs-selfsigned.key
+# Used only when rustfs_nginx_ssl_mode=controller.
 rustfs_nginx_ssl_certificate_source: ""
 rustfs_nginx_ssl_certificate_key_source: ""
+# Used only when rustfs_nginx_ssl_mode=self_signed.
+rustfs_nginx_self_signed_days: 365
+rustfs_nginx_self_signed_key_size: 4096
 rustfs_nginx_config_path: /etc/nginx/conf.d/rustfs.conf
