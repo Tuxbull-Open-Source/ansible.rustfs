@@ -15,25 +15,26 @@
   no_log: true
   when: rustfs_install_client | bool and rustfs_manage_provisioning | bool and (rustfs_buckets | length > 0 or rustfs_users | length > 0)
 
-- name: Check requested buckets
+- name: List existing buckets
   ansible.builtin.command:
-    argv: ["{{ rustfs_client_bin }}", "bucket", "info", "{{ rustfs_cli_alias }}/{{ item.name }}"]
+    argv: ["{{ rustfs_client_bin }}", "bucket", "list", "{{ rustfs_cli_alias }}/", --json]
   environment:
     RC_CONFIG_DIR: "{{ rustfs_config_dir }}/rc"
-  loop: "{{ rustfs_buckets }}"
-  register: rustfs_bucket_checks
+  register: rustfs_bucket_list
   changed_when: false
-  failed_when: false
+  failed_when: rustfs_bucket_list.rc != 0
   no_log: true
   when: rustfs_install_client | bool and rustfs_manage_provisioning | bool and (rustfs_buckets | length > 0 or rustfs_users | length > 0)
 
 - name: Create requested buckets
   ansible.builtin.command:
-    argv: ["{{ rustfs_client_bin }}", "bucket", "create", "{{ rustfs_cli_alias }}/{{ item.item.name }}"]
+    argv: ["{{ rustfs_client_bin }}", "bucket", "create", "{{ rustfs_cli_alias }}/{{ item.name }}"]
   environment:
     RC_CONFIG_DIR: "{{ rustfs_config_dir }}/rc"
-  loop: "{{ rustfs_bucket_checks.results | default([]) }}"
-  when: rustfs_install_client | bool and rustfs_manage_provisioning | bool and (rustfs_buckets | length > 0 or rustfs_users | length > 0) and item.rc != 0
+  loop: "{{ rustfs_buckets }}"
+  when:
+    - rustfs_install_client | bool and rustfs_manage_provisioning | bool and (rustfs_buckets | length > 0 or rustfs_users | length > 0)
+    - item.name not in ((rustfs_bucket_list.stdout | from_json)['items'] | map(attribute='key') | list)
   no_log: true
 
 - name: Check requested users
@@ -54,5 +55,7 @@
   environment:
     RC_CONFIG_DIR: "{{ rustfs_config_dir }}/rc"
   loop: "{{ rustfs_user_checks.results | default([]) }}"
-  when: rustfs_install_client | bool and rustfs_manage_provisioning | bool and (rustfs_buckets | length > 0 or rustfs_users | length > 0) and item.rc != 0
+  when:
+    - rustfs_install_client | bool and rustfs_manage_provisioning | bool and (rustfs_buckets | length > 0 or rustfs_users | length > 0)
+    - item.rc != 0
   no_log: true

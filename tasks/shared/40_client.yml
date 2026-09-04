@@ -32,6 +32,14 @@
     mode: '0755'
   when: rustfs_install_client | bool and rustfs_manage_install | bool
 
+- name: Check installed rc version
+  ansible.builtin.command:
+    argv: ["{{ rustfs_client_bin }}", --version]
+  register: rustfs_installed_client_version
+  changed_when: false
+  failed_when: false
+  when: rustfs_install_client | bool and rustfs_manage_install | bool
+
 - name: Install rc binary
   ansible.builtin.copy:
     src: "{{ rustfs_cli_dir }}/rc"
@@ -40,4 +48,6 @@
     owner: root
     group: root
     mode: '0755'
-  when: rustfs_install_client | bool and rustfs_manage_install | bool
+  when:
+    - rustfs_install_client | bool and rustfs_manage_install | bool
+    - rustfs_installed_client_version.rc != 0 or (rustfs_cli_version | regex_replace('^v', '')) not in rustfs_installed_client_version.stdout

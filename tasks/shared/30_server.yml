@@ -32,6 +32,14 @@
     mode: '0755'
   when: rustfs_manage_install | bool
 
+- name: Check installed RustFS version
+  ansible.builtin.command:
+    argv: ["{{ rustfs_server_bin }}", --version]
+  register: rustfs_installed_version
+  changed_when: false
+  failed_when: false
+  when: rustfs_manage_install | bool
+
 - name: Install RustFS server binary
   ansible.builtin.copy:
     src: "{{ rustfs_release_dir }}/rustfs"
@@ -40,5 +48,7 @@
     owner: root
     group: root
     mode: '0755'
-  when: rustfs_manage_install | bool
+  when:
+    - rustfs_manage_install | bool
+    - rustfs_installed_version.rc != 0 or ('rustfs ' ~ rustfs_version) not in rustfs_installed_version.stdout
   notify: Restart rustfs
