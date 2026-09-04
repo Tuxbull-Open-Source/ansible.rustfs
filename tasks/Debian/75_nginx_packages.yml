@@ -4,6 +4,7 @@
     name:
       - "{{ rustfs_nginx_package }}"
       - openssl
+      - python3-cryptography
     state: present
     update_cache: true
   when: rustfs_nginx_enabled | bool and rustfs_manage_nginx | bool
