@@ -4,7 +4,13 @@ Installs a pinned RustFS server and the official `rc` client, manages a systemd
 service, provisions buckets and users idempotently, and publishes S3 and Console
 through Nginx TLS SNI virtual hosts by default.
 
-Galaxy role name: `tuxbull.rustfs`
+Galaxy namespace: `Tuxbull-Open-Source`
+
+Galaxy role name: `Tuxbull-Open-Source.rustfs`
+
+The repository must be imported into the matching Galaxy namespace. The
+`galaxy_info.namespace` value in `meta/main.yml` is intentionally the exact
+GitHub organization slug, including capitalization.
 
 ## Scope and security model
 
@@ -38,7 +44,7 @@ rendered environment files, or real infrastructure values.
       - access_key: backup-writer
         secret_key: "{{ vault_backup_writer_secret }}"
   roles:
-    - tuxbull.rustfs
+    - Tuxbull-Open-Source.rustfs
 ```
 
 Pin both server/client versions and SHA-256 checksums in production. The role
