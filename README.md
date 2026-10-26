@@ -4,14 +4,13 @@ Installs a pinned RustFS server and the official `rc` client, manages a systemd
 service, provisions buckets and users idempotently, and publishes S3 and Console
 through Nginx TLS SNI virtual hosts by default.
 
-Galaxy namespace: `tuxbull`
+Galaxy namespace: `Tuxbull-Open-Source`
 
-Galaxy role name: `tuxbull.rustfs`
+Galaxy role name: `Tuxbull-Open-Source.rustfs`
 
-The GitHub source repository is owned by `Tuxbull-Open-Source`, while the
-Galaxy namespace is owned by the authenticated `tuxbull` account. The
-`galaxy_info.namespace` value must match the namespace that exists in Galaxy;
-it is not required to equal the GitHub organization slug.
+The GitHub source repository and Galaxy namespace are both
+`Tuxbull-Open-Source`. The authenticated `tuxbull` account must own or be
+authorized for this Galaxy namespace.
 
 ## Scope and security model
 

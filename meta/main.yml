@@ -1,6 +1,6 @@
 ---
 galaxy_info:
-  namespace: tuxbull
+  namespace: Tuxbull-Open-Source
   role_name: rustfs
   author: Tuxbull-Open-Source
   description: Install and operate RustFS S3-compatible object storage
