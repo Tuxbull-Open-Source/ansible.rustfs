@@ -2,7 +2,13 @@
 
 All notable changes to this role are recorded here.
 
-## v0.2.1 (pending publication)
+## Unreleased
+
+- Add a human-readable manual Galaxy import recipe with protected token input,
+  task polling, download-source correction, and actual installation checks.
+- Explain documentation-only imports without creating a new release.
+
+## v0.2.1
 
 - Document the ordered release workflow: changelog, review, immutable SemVer
   tag, GitHub Release, Galaxy import, and installation verification.
