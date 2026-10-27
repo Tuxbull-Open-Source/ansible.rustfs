@@ -340,19 +340,22 @@ intentional.
 | Debian-family | `apt` | Debian and derivatives exposing `ansible_os_family: Debian` |
 | RHEL-family | `dnf` | Rocky, AlmaLinux, Red Hat (`rhelAll`) |
 
-The local harness copies the role into `harness/roles/rustfs` so its basename
-matches the installed-role contract, then runs both Debian and Rocky fact sets.
-It disables package, download, service, provisioning, and Nginx changes, so
-these tests prove dispatch and syntax only—not installation or live behavior.
-Install `community.crypto` before enabling Nginx TLS; the dependency is pinned
-in [`collections/requirements.yml`](collections/requirements.yml).
+The local test helper copies the role to a temporary directory outside the
+repository so its basename matches the installed-role contract, then runs both
+Debian and Rocky fact sets. It disables package, download, service,
+provisioning, and Nginx changes, so these tests prove dispatch and syntax
+only—not installation or live behavior. Install `community.crypto` before
+enabling Nginx TLS; the dependency is pinned in
+[`collections/requirements.yml`](collections/requirements.yml).
 
 ## Testing status
 
 Static verification currently passes:
 
 ```bash
-python3 tests/scripts/prepare_harness.py
+HARNESS_DIR="$(mktemp -d)"
+trap 'rm -rf "$HARNESS_DIR"' EXIT
+python3 tests/scripts/prepare_harness.py "$HARNESS_DIR/roles/rustfs"
 python3 - <<'PY'
 from pathlib import Path
 import yaml
@@ -361,20 +364,21 @@ for path in files:
     yaml.safe_load(path.read_text())
 print(f'parsed {len(files)} YAML files')
 PY
-ANSIBLE_ROLES_PATH=harness/roles ansible-playbook -i tests/inventory.ini tests/test.yml --syntax-check
-ANSIBLE_ROLES_PATH=harness/roles ansible-playbook -i tests/inventory.ini tests/test.yml --check
+ANSIBLE_ROLES_PATH="$HARNESS_DIR/roles" ansible-playbook -i tests/inventory.ini tests/test.yml --syntax-check
+ANSIBLE_ROLES_PATH="$HARNESS_DIR/roles" ansible-playbook -i tests/inventory.ini tests/test.yml --check
 git diff --check
 # Focused scan: shared tasks must remain OS-neutral.
 ! grep -REn 'ansible_(os_family|distribution)|\b(Debian|RedHat|Rocky|AlmaLinux|apt|dnf|yum)\b' tasks/shared/
 ```
 
-A disposable Rocky 10 Hetzner test was attempted, but SSH authentication
-failed before the role ran because the VM key did not match the available key.
-The VM was deleted and provider cleanup was verified. Live installation,
-bucket/user lifecycle, upgrade, Nginx, TLS, and end-to-end idempotency are not
-claimed as tested.
+For live verification, use an approved disposable or existing test target that
+matches the supported OS matrix. Keep inventory, credentials, SSH material,
+provider state, and logs outside the repository. Verify installation,
+configuration, service state, health, functional provisioning, upgrade,
+idempotency, and cleanup independently. Live test details belong in the
+project's operational notes or change log, not in this role README.
 
-## Sources and design provenance
+## Sources
 
 - [RustFS Docker installation](https://docs.rustfs.com/en/installation/container/docker)
 - [RustFS S3 protocol](https://docs.rustfs.com/en/administration/protocols/s3)
@@ -384,6 +388,3 @@ claimed as tested.
 - [RustFS releases](https://github.com/rustfs/rustfs/releases)
 - [Reference public role](https://github.com/ricsanfre/ansible-role-rustfs) (MIT), reviewed
   for release asset naming, `rc` installation, and role layout; no code was copied.
-
-The requested Bitbull-Ideas `ansible.template` repository was checked via the
-GitHub API and returned 404. No files were copied from it.
