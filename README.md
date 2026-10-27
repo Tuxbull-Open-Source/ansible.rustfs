@@ -4,13 +4,200 @@ Installs a pinned RustFS server and the official `rc` client, manages a systemd
 service, provisions buckets and users idempotently, and publishes S3 and Console
 through Nginx TLS SNI virtual hosts by default.
 
-Galaxy namespace: `Tuxbull-Open-Source`
+Current release line: `v0.1`
 
-Galaxy role name: `Tuxbull-Open-Source.rustfs`
+Ansible Galaxy role: `tuxbull.rustfs`
 
-The GitHub source repository and Galaxy namespace are both
-`Tuxbull-Open-Source`. The authenticated `tuxbull` account must own or be
-authorized for this Galaxy namespace.
+GitHub source repository:
+<https://github.com/Tuxbull-Open-Source/ansible.rustfs>
+
+The GitHub organization and the Galaxy namespace are separate identities. The
+repository is maintained under `Tuxbull-Open-Source`, while the public Galaxy
+role remains `tuxbull.rustfs`. Keep `galaxy_info.namespace: tuxbull` in
+`meta/main.yml`; moving the Git repository does not require changing the
+Galaxy role name.
+
+## Installation with ansible-galaxy
+
+Install the current published role:
+
+```bash
+ansible-galaxy role install tuxbull.rustfs
+```
+
+Install a specific semantic release tag:
+
+```bash
+ansible-galaxy role install tuxbull.rustfs,0.1.0
+```
+
+For repeatable automation, pin the role in `requirements.yml`:
+
+```yaml
+---
+roles:
+  - name: tuxbull.rustfs
+    version: 0.1.0
+```
+
+Install the role and its declared Ansible collections:
+
+```bash
+ansible-galaxy role install -r requirements.yml
+ansible-galaxy collection install -r collections/requirements.yml
+```
+
+## Requirements
+
+The role requires Ansible `2.15` or newer and supports:
+
+- Rocky, AlmaLinux, and RHEL 8, 9, and 10.
+- Debian-family systems exposing `ansible_os_family: Debian`.
+- Ubuntu 22.04 and 24.04.
+
+The target needs network access to download the pinned RustFS server and
+official `rc` client releases unless the release URLs are overridden. Nginx
+TLS configuration requires the `community.crypto` collection:
+
+```bash
+ansible-galaxy collection install -r collections/requirements.yml
+```
+
+## Role dependencies
+
+This role has no dependencies on other Ansible roles.
+
+## Role variables
+
+Defaults are documented inline in [`defaults/main.yml`](defaults/main.yml).
+The main configurable areas are:
+
+- RustFS server and `rc` client versions/checksums.
+- Service account, data/configuration paths, and listeners.
+- Root credentials and additional access users.
+- Bucket provisioning.
+- Optional Nginx reverse proxy and TLS/SNI settings.
+- Independent package, installation, configuration, service, provisioning,
+  and Nginx management controls.
+
+Credentials and private keys must come from Ansible Vault or another approved
+secret store; do not commit them to the role.
+
+## Install directly from GitHub
+
+Use the Git source when testing an unreleased branch or before a Galaxy import
+is available:
+
+```bash
+ansible-galaxy role install \\
+  -p ./roles \\
+  git+https://github.com/Tuxbull-Open-Source/ansible.rustfs.git,main
+```
+
+The Git source is not a replacement for the published FQN in production
+requirements. Prefer a tagged Galaxy release for reproducibility.
+
+## Releases
+
+The role uses semantic Git tags and Galaxy role versions. The current release
+line is:
+
+| Release | Status | Notes |
+|---|---|---|
+| `v0.1` | current release line | Initial role release; use the published `0.1.0` tag when available. |
+
+Create releases from the reviewed `main` branch with a semantic Git tag such as
+`v0.1.0`, then import that tag into Galaxy. Consumers can pin
+`tuxbull.rustfs` to the corresponding semantic version. Do not describe a tag
+as published until the Git tag, Galaxy import, and Galaxy role version have
+been verified.
+
+## Migrating the GitHub repository into the organization
+
+The safe target arrangement is:
+
+```text
+GitHub repository:  Tuxbull-Open-Source/ansible.rustfs
+Galaxy role:       tuxbull.rustfs
+Galaxy metadata:   namespace: tuxbull
+                   role_name: rustfs
+```
+
+Do not change the Galaxy namespace to the GitHub organization name merely
+because the repository moved. Galaxy ownership and the GitHub repository owner
+are independent. Changing the namespace would create a different role FQN and
+break existing `tuxbull.rustfs` consumers.
+
+### Recommended migration procedure
+
+1. Ensure `tuxbull` owns the existing Galaxy namespace and has Galaxy access to
+   the `Tuxbull-Open-Source` GitHub organization.
+2. Prefer GitHub's repository **Transfer** operation from the personal owner to
+   `Tuxbull-Open-Source`. This preserves the Git history, issues, pull
+   requests, tags, and redirects. If transfer is unavailable, create the
+   organization repository and push all branches and tags, then verify the
+   default branch and commit history before proceeding. Preserve the repository
+   name `ansible.rustfs`.
+3. Grant the Ansible Galaxy GitHub OAuth application access to the organization
+   if the organization has third-party application restrictions enabled.
+4. Keep this metadata unchanged:
+
+   ```yaml
+   galaxy_info:
+     namespace: tuxbull
+     role_name: rustfs
+   ```
+
+5. Re-import the role so Galaxy records the new clone URL. The legacy import
+   API can use the authenticated Galaxy user as the importer and the
+   organization repository as the alternate clone URL:
+
+   ```bash
+   export GALAXY_TOKEN='read-from-an-approved-secret-store'
+   curl -fsS -X POST https://galaxy.ansible.com/api/v1/imports/ \\
+     -H "Authorization: Token ${GALAXY_TOKEN}" \\
+     -H 'Content-Type: application/json' \\
+     --data '{
+       "github_user": "tuxbull",
+       "github_repo": "ansible.rustfs",
+       "github_reference": "main",
+       "alternate_clone_url": "https://github.com/Tuxbull-Open-Source/ansible.rustfs"
+     }'
+   ```
+
+   Do not commit or print the token. The import payload keeps the Galaxy
+   namespace as `tuxbull` from `meta/main.yml` while cloning from the GitHub
+   organization.
+6. Poll the Galaxy import to a terminal success state and verify the role
+   record still has the FQN `tuxbull.rustfs` and the organization clone URL.
+   Then verify installation:
+
+   ```bash
+   ansible-galaxy role install --force tuxbull.rustfs
+   ```
+
+Existing playbooks continue to use `tuxbull.rustfs`; only the GitHub source
+location changes. If the repository was transferred rather than recreated,
+GitHub normally provides redirects and preserves repository history. The
+Galaxy re-import is still recommended so future updates use the organization
+URL directly. Do not delete the existing Galaxy role during this migration;
+delete/recreate is only a last resort after a verified replacement exists.
+
+### If Galaxy returns HTTP 500 or cannot clone the repository
+
+Check these in order:
+
+- `meta/main.yml` still says `namespace: tuxbull` and `role_name: rustfs`.
+- The Galaxy token belongs to `tuxbull` and has import permission.
+- `tuxbull` can access the organization repository.
+- The Galaxy GitHub OAuth application has been granted access to
+  `Tuxbull-Open-Source`.
+- The `alternate_clone_url` is exactly
+  `https://github.com/Tuxbull-Open-Source/ansible.rustfs`.
+
+The authenticated Galaxy user and the GitHub organization owner may differ;
+the alternate clone URL is what connects the existing Galaxy role to the new
+repository location.
 
 ## Scope and security model
 
