@@ -193,6 +193,98 @@ import. This does not require deleting the role or changing namespace/provider
 ownership. A direct organization-owner import returned HTTP 500 in this setup;
 that error alone does not prove missing OAuth permissions.
 
+### Manual import for maintainers
+
+The following Bash recipe requires `curl`, `jq`, Python 3, and `ansible-galaxy`. Run it
+from a trusted terminal with shell tracing disabled. Obtain your token after
+logging in at <https://galaxy.ansible.com/ui/token/>. This updates the existing
+Galaxy role from main; it does not create a tag or GitHub Release.
+
+Use a subshell so the token and temporary files are cleaned up on exit. The
+header is stored in a private temporary file rather than in curl's process
+arguments. Do not paste tokens into commands, chat, or version control.
+
+```bash
+(
+  set -eu
+  set +x
+  umask 077
+  WORK="$(mktemp -d)"
+  trap 'rm -rf "$WORK"; unset GALAXY_TOKEN' EXIT
+  read -rsp 'Galaxy token: ' GALAXY_TOKEN
+  printf '\n'
+  printf 'Authorization: Token %s\n' "$GALAXY_TOKEN" > "$WORK/auth"
+  unset GALAXY_TOKEN
+  API='https://galaxy.ansible.com/api/v1'
+
+  # Resolve the existing role; do not blindly reuse an old ID.
+  curl -fsS "$API/roles/?namespace=tuxbull&name=rustfs" > "$WORK/role.json"
+  ROLE_ID="$(jq -er '
+    select(.count == 1) | .results[0] |
+    select(.name == "rustfs" and .summary_fields.namespace.name == "tuxbull") |
+    .id' "$WORK/role.json")"
+
+  # Submit an asynchronous import using the organization as the clone source.
+  curl -fsS -X POST "$API/imports/" \
+    -H @"$WORK/auth" -H 'Content-Type: application/json' \
+    --data '{
+      "github_user":"tuxbull",
+      "github_repo":"ansible.rustfs",
+      "github_reference":"main",
+      "alternate_clone_url":"https://github.com/Tuxbull-Open-Source/ansible.rustfs",
+      "alternate_namespace_name":"tuxbull",
+      "alternate_role_name":"rustfs"
+    }' > "$WORK/import.json"
+  # IDs exceed IEEE-754 precision; use Python integers, not jq arithmetic.
+  IMPORT_ID="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["results"][0]["id"])' "$WORK/import.json")"
+  printf 'Import task: %s\n' "$IMPORT_ID"
+
+  # Wait at most approximately five minutes, excluding HTTP request time.
+  STATE='UNKNOWN'
+  for attempt in $(seq 1 60); do
+    curl -fsS --max-time 60 -H @"$WORK/auth" \
+      "$API/imports/$IMPORT_ID/" > "$WORK/task.json"
+    STATE="$(jq -er '.results[0].state' "$WORK/task.json")"
+    case "$STATE" in
+      SUCCESS) break ;;
+      FAILED|CANCELED) break ;;
+    esac
+    sleep 5
+  done
+  if [ "$STATE" != SUCCESS ]; then
+    printf 'Import did not succeed: %s\n' "$STATE" >&2
+    jq '.results[0].summary_fields.task_messages' "$WORK/task.json"
+    exit 1
+  fi
+
+  # Import success alone is insufficient: repair the CLI download owner.
+  curl -fsS -X PUT "$API/roles/$ROLE_ID/" \
+    -H @"$WORK/auth" -H 'Content-Type: application/json' \
+    --data '{"github_user":"Tuxbull-Open-Source"}'
+  curl -fsS "$API/roles/$ROLE_ID/" > "$WORK/verified.json"
+  jq -e '
+    .name == "rustfs" and .summary_fields.namespace.name == "tuxbull" and
+    .github_user == "Tuxbull-Open-Source" and
+    .github_repo == "ansible.rustfs" and .github_branch == "main"
+  ' "$WORK/verified.json"
+  jq '{name, github_user, github_repo, github_branch, commit}' "$WORK/verified.json"
+  curl -fsS "$API/roles/$ROLE_ID/versions/" | jq '.results'
+
+  # These installs must really succeed; temporary files are removed on exit.
+  ansible-galaxy role install -p "$WORK/galaxy" tuxbull.rustfs
+  ansible-galaxy role install -p "$WORK/git" \
+    'git+https://github.com/Tuxbull-Open-Source/ansible.rustfs.git,main'
+)
+```
+
+For a release, additionally perform the pinned installation check below.
+For documentation-only updates without a new release, the unpinned Galaxy
+installation still selects the latest existing release; the direct Git command
+selects current main. Importing main does not update an immutable tag archive.
+Do not expect those two installations to include identical documentation.
+Record documentation-only changes under `Unreleased` in CHANGELOG.md; do not
+create a release when the maintainer explicitly requests documentation only.
+
 ### Required installation verification
 
 Run actual installations into separate fresh temporary directories:
