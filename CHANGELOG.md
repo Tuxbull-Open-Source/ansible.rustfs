@@ -2,6 +2,15 @@
 
 All notable changes to this role are recorded here.
 
+## v0.2.1 (pending publication)
+
+- Document the ordered release workflow: changelog, review, immutable SemVer
+  tag, GitHub Release, Galaxy import, and installation verification.
+- Include the Galaxy re-import and source-owner repair instructions in the
+  next release archive.
+- Include the retrospective v0.2.0 changelog entry in the next release archive.
+- No RustFS runtime behavior changes.
+
 ## v0.2.0
 
 - Adopt three-component semantic versioning for Galaxy publication.
