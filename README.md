@@ -35,7 +35,6 @@ The role requires Ansible `2.15` or newer and supports:
 
 - Rocky, AlmaLinux, and RHEL 8, 9, and 10.
 - Debian-family systems exposing `ansible_os_family: Debian`.
-- Ubuntu 22.04 and 24.04.
 
 The target needs network access to download the pinned RustFS server and
 official `rc` client releases unless the release URLs are overridden. Nginx
