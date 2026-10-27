@@ -2,11 +2,14 @@
 
 All notable changes to this role are recorded here.
 
-## Unreleased
+## v0.2.2 - 2026-10-27
 
 - Add a human-readable manual Galaxy import recipe with protected token input,
   task polling, download-source correction, and actual installation checks.
 - Explain documentation-only imports without creating a new release.
+- Restart RustFS before client provisioning when the rendered service environment
+  or unit changes, so bucket/user reconciliation uses the newly configured root
+  credentials.
 
 ## v0.2.1
 
