@@ -99,6 +99,50 @@ three-component SemVer tag, for example `v0.2.0`, on the intended commit.
 Two-component tags such as `v0.11` are skipped. Never move or delete existing
 tags without authorization. A changelog entry does not publish a version.
 
+### Release lifecycle and version policy
+
+Use `vMAJOR.MINOR.PATCH` tags (three numeric components). Increment PATCH for
+compatible fixes and documentation-only releases, MINOR for compatible new
+features, and MAJOR for incompatible changes. Treat pre-1.0 compatibility
+changes explicitly in the release notes. Role versions are independent of the
+RustFS server and rc client versions in defaults/main.yml.
+
+Follow this order; a successful import alone is not a complete release:
+
+1. Inspect remote main, tags, GitHub Releases, and Galaxy versions. If a local
+   tag differs from its remote counterpart, stop automatic tag synchronization
+   and report both commits. Never force-fetch or silently rewrite a release tag.
+2. Choose an unused version. Prepare a release PR containing its CHANGELOG.md
+   entry and all intended code/documentation changes. Describe only changes
+   actually included and tests actually performed. Keep release history out
+   of README.md. While the PR is open, label the entry as pending publication.
+3. Validate the changed files and relevant tests. Obtain maintainer review and
+   merge; do not self-merge. Fetch main without overwriting tags and verify the
+   approved changes and exact version entry are in the commit to be released.
+4. Create an annotated tag on that verified main commit, then push only that
+   tag. Read back both the remote tag object and its peeled commit. Do not tag
+   an unmerged feature branch or move an existing tag to include later fixes.
+5. Create a published GitHub Release for the exact tag, with release notes
+   derived from its CHANGELOG.md entry. Set draft=false and prerelease=false
+   for a stable release. Verify the release URL, tag, and publication state.
+   A Git tag, GitHub Release, changelog entry, and Galaxy version are separate
+   artifacts; none substitutes for the others.
+6. Run the re-import procedure below, repair the download source if needed,
+   and require Galaxy to expose the new tag with the exact release commit.
+   Importing main can discover tags, but does not create a tag or a release.
+7. Test the unpinned Galaxy FQN, the exact version-pinned Galaxy FQN, and the
+   organization Git URL in fresh directories. Verify installed metadata and
+   version; check the released changelog is included. Compare the pinned
+   installation with the same Git tag, not a potentially newer main branch.
+8. Report the release/tag URL, commit, changelog entry, Galaxy task/version,
+   installation results, and cleanup. If any gate is blocked, report a pending
+   release rather than claiming publication. Do not automatically bump another
+   version after publication; choose the next version with the next change.
+
+Published tags are immutable. Correct post-release omissions in a new patch
+release. Preserve historical tags and document discrepancies rather than
+rewriting consumers' existing version references.
+
 ### Re-import procedure
 
 Provide `GALAXY_TOKEN` through an approved secret store/environment. Never
