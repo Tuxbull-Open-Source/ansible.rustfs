@@ -28,6 +28,10 @@
     daemon_reload: true
   when: rustfs_manage_service | bool
 
+- name: Apply pending RustFS configuration changes before health and provisioning
+  ansible.builtin.meta: flush_handlers
+  when: rustfs_manage_configuration | bool or rustfs_manage_service | bool
+
 - name: Wait for RustFS health endpoint
   ansible.builtin.uri:
     url: "http://{{ rustfs_api_address }}/{{ rustfs_health_path | regex_replace('^/','') }}"
