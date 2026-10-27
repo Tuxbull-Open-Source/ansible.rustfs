@@ -1,0 +1,22 @@
+[Unit]
+Description=RustFS object storage
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ rustfs_user }}
+Group={{ rustfs_group }}
+EnvironmentFile={{ rustfs_env_file }}
+ExecStart={{ rustfs_server_bin }}{% for arg in rustfs_server_args %} {{ arg }}{% endfor %} {{ rustfs_data_dir }}
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths={{ rustfs_data_dir }} {{ rustfs_log_dir }}
+
+[Install]
+WantedBy=multi-user.target

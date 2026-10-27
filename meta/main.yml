@@ -1,0 +1,15 @@
+---
+galaxy_info:
+  namespace: Tuxbull-Open-Source
+  role_name: rustfs
+  author: Tuxbull-Open-Source
+  description: Install and operate RustFS S3-compatible object storage
+  license: MIT
+  min_ansible_version: '2.15'
+  platforms:
+    - name: EL
+      versions: ['8','9','10']
+    - name: Ubuntu
+      versions: ['22.04','24.04']
+  galaxy_tags: [rustfs, s3, object-storage]
+dependencies: []

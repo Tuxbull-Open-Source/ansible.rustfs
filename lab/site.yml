@@ -1,0 +1,38 @@
+---
+- name: RustFS Rocky 10 lab
+  hosts: rustfs_lab
+  become: true
+  gather_facts: true
+  vars:
+    rustfs_root_user: "{{ vault_rustfs_root_user }}"
+    rustfs_root_password: "{{ vault_rustfs_root_password }}"
+    rustfs_checksum: "{{ vault_rustfs_checksum }}"
+    rustfs_buckets:
+      - {name: lab-bucket}
+    rustfs_users:
+      - access_key: lab-client
+        secret_key: "{{ vault_rustfs_client_secret }}"
+    rustfs_version: "{{ vault_rustfs_version }}"
+  roles:
+    - role: rustfs
+  post_tasks:
+    - name: Verify health independently
+      ansible.builtin.uri:
+        url: http://127.0.0.1:9000/health
+        status_code: 200
+    - name: Verify service
+      ansible.builtin.command: systemctl is-active rustfs
+      changed_when: false
+
+- name: Upgrade RustFS in the same lab
+  hosts: rustfs_lab
+  become: true
+  vars:
+    rustfs_root_user: "{{ vault_rustfs_root_user }}"
+    rustfs_root_password: "{{ vault_rustfs_root_password }}"
+    rustfs_checksum: "{{ vault_rustfs_upgrade_checksum }}"
+    rustfs_version: "{{ rustfs_lab_upgrade_version }}"
+    rustfs_buckets: []
+    rustfs_users: []
+  roles:
+    - role: rustfs
