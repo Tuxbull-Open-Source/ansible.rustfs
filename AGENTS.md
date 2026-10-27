@@ -27,6 +27,32 @@ Also parse YAML, run `git diff --check`, and verify that shared tasks contain no
 OS-specific selectors or package-manager logic. Do not commit the temporary
 harness directory.
 
+## Testing status
+
+Run the following static checks from the repository root:
+
+```bash
+HARNESS_DIR="$(mktemp -d)"
+trap 'rm -rf "$HARNESS_DIR"' EXIT
+python3 tests/scripts/prepare_harness.py "$HARNESS_DIR/roles/rustfs"
+python3 - <<'PY'
+from pathlib import Path
+import yaml
+files = list(Path('.').rglob('*.yml')) + list(Path('.').rglob('*.yaml'))
+for path in files:
+    yaml.safe_load(path.read_text())
+print(f'parsed {len(files)} YAML files')
+PY
+ANSIBLE_ROLES_PATH="$HARNESS_DIR/roles" ansible-playbook -i tests/inventory.ini tests/test.yml --syntax-check
+ANSIBLE_ROLES_PATH="$HARNESS_DIR/roles" ansible-playbook -i tests/inventory.ini tests/test.yml --check
+git diff --check
+! grep -REn 'ansible_(os_family|distribution)|\b(Debian|RedHat|Rocky|AlmaLinux|apt|dnf|yum)\b' tasks/shared/
+```
+
+These checks cover YAML parsing, dispatcher selection for Debian and
+RHEL-family facts, syntax, check mode, and the shared-task OS-neutrality rule.
+They do not prove installation or live behavior.
+
 ## Live verification
 
 Live testing is optional and is not tied to Hetzner or any other provider. Use
