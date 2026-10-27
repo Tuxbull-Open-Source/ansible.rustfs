@@ -85,6 +85,99 @@ Controller-side Ansible collections are declared in
 other Ansible roles and are currently empty. Install collections from the
 manifest rather than editing downloaded collection contents.
 
+## Galaxy re-import and publication
+
+Only publish with maintainer authorization. Keep these identities separate:
+
+- GitHub source: `Tuxbull-Open-Source/ansible.rustfs`
+- Galaxy namespace and operator: `tuxbull`
+- Galaxy role: `tuxbull.rustfs`
+- Role metadata: `namespace: tuxbull`, `role_name: rustfs`
+
+Use the reviewed remote `main` branch. Versioned publication requires a
+three-component SemVer tag, for example `v0.2.0`, on the intended commit.
+Two-component tags such as `v0.11` are skipped. Never move or delete existing
+tags without authorization. A changelog entry does not publish a version.
+
+### Re-import procedure
+
+Provide `GALAXY_TOKEN` through an approved secret store/environment. Never
+print it, commit it, or enable shell tracing. Use the Galaxy REST API:
+
+1. GET `https://galaxy.ansible.com/api/v1/roles/?namespace=tuxbull&name=rustfs`.
+   Require exactly one matching role; verify its namespace and name and retain
+   its ID. Do not assume an old role ID still identifies the correct role.
+2. POST `https://galaxy.ansible.com/api/v1/imports/` with the following JSON,
+   `Content-Type: application/json`, and an `Authorization` header consisting
+   of `Token ` followed by the environment token:
+
+   ```json
+   {
+     "github_user": "tuxbull",
+     "github_repo": "ansible.rustfs",
+     "github_reference": "main",
+     "alternate_clone_url": "https://github.com/Tuxbull-Open-Source/ansible.rustfs",
+     "alternate_namespace_name": "tuxbull",
+     "alternate_role_name": "rustfs"
+   }
+   ```
+
+3. Read the task ID from `results[0].id`. Poll
+   `GET /api/v1/imports/<task-id>/` until `results[0].state` is `SUCCESS` or a
+   terminal failure. Use a bounded timeout; HTTP 200 on submission is not
+   completion. Inspect task messages on failure, rather than blindly retrying.
+4. GET `/api/v1/roles/<role-id>/` and verify the namespace, role name,
+   repository, branch, and imported commit. Compare the commit with
+   `git ls-remote origin refs/heads/main`.
+5. If `github_user` is not `Tuxbull-Open-Source`, correct only that field using
+   the supported `PUT /api/v1/roles/<role-id>/` endpoint:
+
+   ```json
+   {"github_user": "Tuxbull-Open-Source"}
+   ```
+
+6. Read the exact role back. Require `github_user: Tuxbull-Open-Source`,
+   `github_repo: ansible.rustfs`, and namespace/name `tuxbull.rustfs`.
+7. GET `/api/v1/roles/<role-id>/versions/`. For a release, require the exact
+   intended tag and commit, and verify its organization-based download URL.
+
+**Important:** `alternate_clone_url` controls cloning during import, but the
+importer can leave `github_user: tuxbull` in the download metadata. The Galaxy
+CLI then builds a personal-repository URL that returns HTTP 404 despite an
+import status of `SUCCESS`. Recheck and repair the source owner after every
+import. This does not require deleting the role or changing namespace/provider
+ownership. A direct organization-owner import returned HTTP 500 in this setup;
+that error alone does not prove missing OAuth permissions.
+
+### Required installation verification
+
+Run actual installations into separate fresh temporary directories:
+
+```bash
+(
+  set -eu
+  CHECK_DIR="$(mktemp -d)"
+  trap 'rm -rf "$CHECK_DIR"' EXIT
+  ansible-galaxy role install -p "$CHECK_DIR/galaxy" tuxbull.rustfs
+  ansible-galaxy role install -p "$CHECK_DIR/git" \
+    'git+https://github.com/Tuxbull-Open-Source/ansible.rustfs.git,main'
+  # Set to the exact tag being published; this is an example, not latest.
+  RELEASE_TAG=v0.2.0
+  ansible-galaxy role install -p "$CHECK_DIR/pinned" "tuxbull.rustfs,$RELEASE_TAG"
+)
+```
+
+Before removing the temporary directories, inspect installed `meta/main.yml`
+and `meta/.galaxy_install_info` and verify the requested version. The FQN
+installs under `tuxbull.rustfs`; the direct Git command installs under
+`ansible.rustfs`. An unpinned Galaxy install can select the latest release,
+whereas direct Git uses `main`. Compare source files only when both resolve to
+the same revision, excluding `.galaxy_install_info`.
+
+Report success only after import completion, metadata read-back, version
+lookup, and real installation tests. Installation proves distribution, not
+live RustFS behavior. Keep this workflow in AGENTS.md, not in README.md.
+
 ## Documentation
 
 `README.md` documents role usage only. `CHANGELOG.md` contains release and
