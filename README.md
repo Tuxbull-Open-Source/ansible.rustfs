@@ -315,67 +315,12 @@ Certificate operations:
 
 ## Task dispatch and supported platforms
 
-The role uses a deterministic numbered-task dispatcher. `tasks/main.yml` finds
-all two-digit task basenames below `tasks/`, sorts and deduplicates them, and
-`tasks/include-file.yml` selects the first implementation in this order:
-
-1. distribution + full version
-2. distribution + major version
-3. distribution
-4. `rhelAll` + full/major version, then `rhelAll`
-5. `ansible_os_family`
-6. `shared`
-
-AlmaLinux, Rocky, and Red Hat use the `rhelAll` family. Debian-family package
-and Nginx installation tasks are under `tasks/Debian/`; RHEL-family equivalents
-are under `tasks/rhelAll/`. Shared tasks contain the platform-neutral release,
-service, provisioning, and optional plain-HTTP/Nginx-TLS behavior. A more
-specific file with the same basename shadows (replaces) the shared fallback;
-it is not additive. Keep numbered basenames unique unless that shadowing is
-intentional.
+This role is based on the [Enterprise Ansible Role Template](https://github.com/joe-speedboat/ansible.template).
 
 | Family | Package implementation | Coverage |
 |---|---|---|
 | Debian-family | `apt` | Debian and derivatives exposing `ansible_os_family: Debian` |
 | RHEL-family | `dnf` | Rocky, AlmaLinux, Red Hat (`rhelAll`) |
-
-The local test helper copies the role to a temporary directory outside the
-repository so its basename matches the installed-role contract, then runs both
-Debian and Rocky fact sets. It disables package, download, service,
-provisioning, and Nginx changes, so these tests prove dispatch and syntax
-only—not installation or live behavior. Install `community.crypto` before
-enabling Nginx TLS; the dependency is pinned in
-[`collections/requirements.yml`](collections/requirements.yml).
-
-## Testing status
-
-Static verification currently passes:
-
-```bash
-HARNESS_DIR="$(mktemp -d)"
-trap 'rm -rf "$HARNESS_DIR"' EXIT
-python3 tests/scripts/prepare_harness.py "$HARNESS_DIR/roles/rustfs"
-python3 - <<'PY'
-from pathlib import Path
-import yaml
-files = list(Path('.').rglob('*.yml')) + list(Path('.').rglob('*.yaml'))
-for path in files:
-    yaml.safe_load(path.read_text())
-print(f'parsed {len(files)} YAML files')
-PY
-ANSIBLE_ROLES_PATH="$HARNESS_DIR/roles" ansible-playbook -i tests/inventory.ini tests/test.yml --syntax-check
-ANSIBLE_ROLES_PATH="$HARNESS_DIR/roles" ansible-playbook -i tests/inventory.ini tests/test.yml --check
-git diff --check
-# Focused scan: shared tasks must remain OS-neutral.
-! grep -REn 'ansible_(os_family|distribution)|\b(Debian|RedHat|Rocky|AlmaLinux|apt|dnf|yum)\b' tasks/shared/
-```
-
-For live verification, use an approved disposable or existing test target that
-matches the supported OS matrix. Keep inventory, credentials, SSH material,
-provider state, and logs outside the repository. Verify installation,
-configuration, service state, health, functional provisioning, upgrade,
-idempotency, and cleanup independently. Live test details belong in the
-project's operational notes or change log, not in this role README.
 
 ## Sources
 
