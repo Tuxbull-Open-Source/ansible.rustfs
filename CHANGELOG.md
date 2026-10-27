@@ -2,7 +2,11 @@
 
 All notable changes to this role are recorded here.
 
-## v0.1
+## v0.11
+- Documentation cleanup
+- Prepare Releases
+
+## v0.10
 
 - Initial RustFS Ansible role release.
 - Installs the RustFS server and official `rc` client.
