@@ -4,8 +4,6 @@ Installs a pinned RustFS server and the official `rc` client, manages a systemd
 service, provisions buckets and users idempotently, and publishes S3 and Console
 through Nginx TLS SNI virtual hosts by default.
 
-Current release line: `v0.1`
-
 Galaxy role: `tuxbull.rustfs`
 
 ## Installation with ansible-galaxy
@@ -16,19 +14,12 @@ Install the role:
 ansible-galaxy role install tuxbull.rustfs
 ```
 
-Install a specific release:
-
-```bash
-ansible-galaxy role install tuxbull.rustfs,0.1.0
-```
-
 For repeatable automation, pin the role in `requirements.yml`:
 
 ```yaml
 ---
 roles:
   - name: tuxbull.rustfs
-    version: 0.1.0
 ```
 
 Install the role and its declared Ansible collections:
@@ -84,15 +75,6 @@ ansible-galaxy role install \\
   git+https://github.com/Tuxbull-Open-Source/ansible.rustfs.git,main
 ```
 
-## Releases
-
-The role uses semantic Git tags and Galaxy role versions. The current release
-line is:
-
-| Release | Status | Notes |
-|---|---|---|
-| `v0.1` | current release line | Initial role release. |
-
 ## Scope and security model
 
 RustFS always binds to the configured local **plain HTTP** addresses. TLS is
@@ -138,7 +120,7 @@ All role defaults are also documented inline in [`defaults/main.yml`](defaults/m
 The following table is the authoritative user-facing summary. Values shown are
 the defaults unless stated otherwise.
 
-### RustFS release and client
+### RustFS server and client
 
 | Variable | Type | Default | Description |
 |---|---|---|---|
